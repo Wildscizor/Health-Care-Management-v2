@@ -11,6 +11,22 @@ Basically, it's a system where:
 - File uploads are handled safely with size and type validation
 - Health data can be analyzed and trends can be visualized
 
+## What's New?
+
+- Added persistent signup and login with GET/POST in the backend, storing users in users.json, saving profile pictures to profile_pics/ and serving them via /profile_pics/....
+- Compare passwords for confirmation now. after your Submission if the password fields do not match, you will find your appropriate message for any unsuccessful login!
+- Updated the Streamlit UI to include a Signup form with all required fields, password confirmation, and login by email or username. Also fixed the Menu section using internal CSS.
+- After login, users are routed to role-based dashboards with a new My Profile section that displays the signup details.
+- What you can do now
+- Open the UI at PORT = "http://127.0.0.1:8501"
+- Switch to Signup, create either a patient or doctor account, then login
+- On login, you’ll see My Profile in the sidebar and can proceed to other pages
+- Key endpoints added
+- POST /api/auth/signup: fields first_name, last_name, username, email, password, confirm_password, role, address_line1, city, state, pincode, profile_picture (file)
+- POST /api/auth/login: accepts either email+password or username+password
+- GET /api/auth/user/{user_id}: returns public user details (auth required)
+- Static: /profile_pics/{filename} for profile picture serving
+
 ## Quick Start
 
 If you just want to get this running locally, here's the fastest way:
