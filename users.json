@@ -1,0 +1,50 @@
+{
+  "Scizor": {
+    "user_id": "user_6cfee8e9a7f3470aa3f0da86188f3023",
+    "username": "Scizor",
+    "first_name": "Pranav",
+    "last_name": " Trivedi",
+    "email": "pranavtri04@gmail.com",
+    "password_hash": "$2b$12$fZ7IU.Tvq.HOk6f5hNXMaeHMOppZXBnxBRLJbz2jfpOvBCf0gt5BG",
+    "role": "patient",
+    "address": {
+      "line1": "6/861",
+      "city": "Lucknow",
+      "state": "UP",
+      "pincode": "2200883"
+    },
+    "profile_picture": "profile_pics/user_6cfee8e9a7f3470aa3f0da86188f3023.png"
+  },
+  "Evernight": {
+    "user_id": "user_2f44cc38e5d04808b87e1f35b2f68331",
+    "username": "Evernight",
+    "first_name": "Meow",
+    "last_name": "Nigga",
+    "email": "gugugaga@gaymail.com",
+    "password_hash": "$2b$12$xHd3sz9G43y.qsP2jSO2j.0Py.H4e25B2.j6ATeYMTC.Ap9MJNM.2",
+    "role": "doctor",
+    "address": {
+      "line1": "6/861",
+      "city": "Lucknow",
+      "state": "UP",
+      "pincode": "2200883"
+    },
+    "profile_picture": "profile_pics/user_2f44cc38e5d04808b87e1f35b2f68331.png"
+  },
+  "Prana": {
+    "user_id": "user_3df0408952834db38f42e5029e66702e",
+    "username": "Prana",
+    "first_name": "Pranav",
+    "last_name": "Trivedi",
+    "email": "pranavtridpsjkp.0848@gmail.com",
+    "password_hash": "$2b$12$cuYkSvUXQdJjF.HBdkT4POOnoau7vrO3PTZy.SDuZViWg1tmis.SK",
+    "role": "patient",
+    "address": {
+      "line1": "knowledge park 2",
+      "city": "Greater Noida",
+      "state": "Uttar Pradesh",
+      "pincode": "226031"
+    },
+    "profile_picture": "profile_pics/user_3df0408952834db38f42e5029e66702e.jpg"
+  }
+}
