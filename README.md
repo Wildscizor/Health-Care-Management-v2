@@ -13,13 +13,10 @@ Basically, it's a system where:
 
 ## What's New?
 
-What's New?
-
 ### v2:
 - Now added database using MYSQL Workbench 8.0. 
-- Prerequisites
+##### Prerequisites
 - MySQL Server: Make sure you have the MySQL Server installed and running on your system.
-
 - MySQL Workbench: You will need MySQL Workbench to connect to the server and import the database.
 
 ##### Steps to Set Up the Database
