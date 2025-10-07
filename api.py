@@ -27,6 +27,9 @@ import plotly.graph_objects as go
 from dotenv import load_dotenv
 from uuid import uuid4
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import create_engine, Column, String, Integer, Text, DateTime, Boolean
+from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.exc import SQLAlchemyError
 import traceback
 
 # Load environment variables
@@ -61,6 +64,7 @@ ALLOWED_FILE_TYPES = {
 """Directories and files for persistent storage"""
 UPLOAD_DIR = os.getenv('UPLOAD_DIR', 'uploads')
 PROFILE_PICS_DIR = os.getenv('PROFILE_PICS_DIR', 'profile_pics')
+BLOG_IMAGES_DIR = os.getenv('BLOG_IMAGES_DIR', 'blog_images')
 USERS_FILE = os.getenv('USERS_FILE', 'users.json')
 APPOINTMENTS_FILE = os.getenv('APPOINTMENTS_FILE', 'appointments.json')
 PATIENT_PROFILES_FILE = os.getenv('PATIENT_PROFILES_FILE', 'patient_profiles.json')
@@ -69,7 +73,7 @@ HEALTH_METRICS_FILE = os.getenv('HEALTH_METRICS_FILE', 'health_metrics.json')
 HEALTH_ALERTS_FILE = os.getenv('HEALTH_ALERTS_FILE', 'health_alerts.json')
 
 # Ensure required directories/files exist and initialize them if they don't
-for dir_path in [UPLOAD_DIR, PROFILE_PICS_DIR]:
+for dir_path in [UPLOAD_DIR, PROFILE_PICS_DIR, BLOG_IMAGES_DIR]:
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
 
@@ -85,8 +89,55 @@ initialize_json_file(NOTIFICATIONS_FILE, {})
 initialize_json_file(HEALTH_METRICS_FILE, {})
 initialize_json_file(HEALTH_ALERTS_FILE, {})
 
-# Serve profile pictures as static files
+# Serve profile pictures and blog images as static files
 app.mount("/profile_pics", StaticFiles(directory=PROFILE_PICS_DIR), name="profile_pics")
+app.mount("/blog_images", StaticFiles(directory=BLOG_IMAGES_DIR), name="blog_images")
+
+# -----------------------------
+# Database (MySQL via SQLAlchemy)
+# -----------------------------
+MYSQL_HOST = os.getenv('MYSQL_HOST', 'localhost')
+MYSQL_PORT = os.getenv('MYSQL_PORT', '3306')
+MYSQL_DB = os.getenv('MYSQL_DB', 'healthcare')
+MYSQL_USER = os.getenv('MYSQL_USER', 'root')
+MYSQL_PASSWORD = os.getenv('MYSQL_PASSWORD', '')
+
+DATABASE_URL = os.getenv(
+    'DATABASE_URL',
+    f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DB}"
+)
+
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+class BlogPost(Base):
+    __tablename__ = 'blog_posts'
+
+    id = Column(Integer, primary_key=True, index=True)
+    author_id = Column(String(64), index=True, nullable=False)
+    title = Column(String(255), nullable=False)
+    image_path = Column(String(512), nullable=True)  # served via /blog_images
+    category = Column(String(64), index=True, nullable=False)
+    summary = Column(String(1024), nullable=False)
+    content = Column(Text, nullable=False)
+    is_draft = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc))
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+@app.on_event("startup")
+def on_startup_create_tables():
+    try:
+        Base.metadata.create_all(bind=engine)
+    except SQLAlchemyError as e:
+        print("[startup] DB init error:", str(e))
 
 # Pydantic models for request/response validation
 class User(BaseModel):
@@ -162,6 +213,28 @@ class HealthAlert(BaseModel):
     is_resolved: bool = False
 
 # -----------------------------
+# Blog Pydantic Models
+# -----------------------------
+class BlogCreate(BaseModel):
+    title: str
+    category: str
+    summary: str
+    content: str
+    is_draft: bool = False
+
+class BlogOut(BaseModel):
+    id: int
+    author_id: str
+    title: str
+    image_url: Optional[str]
+    category: str
+    summary: str
+    is_draft: bool
+    created_at: datetime
+    class Config:
+        from_attributes = True
+
+# -----------------------------
 # Data Persistence Functions
 # -----------------------------
 
@@ -189,6 +262,131 @@ def _user_public_view(user: dict) -> dict:
         "address": user.get("address"),
         "profile_picture": user.get("profile_picture"),
     }
+
+# -----------------------------
+# Blog Endpoints
+# -----------------------------
+ALLOWED_BLOG_CATEGORIES = {"Mental Health", "Heart Disease", "Covid19", "Immunization"}
+
+@app.post("/api/blogs")
+async def create_blog(
+    title: str = Form(...),
+    category: str = Form(...),
+    summary: str = Form(...),
+    content: str = Form(...),
+    is_draft: bool = Form(False),
+    image: UploadFile = File(None),
+    token: str = Depends(oauth2_scheme),
+    db = Depends(get_db)
+):
+    try:
+        user = utils.verify_jwt_token(token)
+        if user["role"] != "doctor":
+            raise HTTPException(status_code=403, detail="Only doctors can create blog posts")
+
+        if category not in ALLOWED_BLOG_CATEGORIES:
+            raise HTTPException(status_code=400, detail=f"Invalid category. Allowed: {', '.join(sorted(ALLOWED_BLOG_CATEGORIES))}")
+
+        image_path = None
+        if image is not None:
+            ext = os.path.splitext(image.filename)[1] or ".jpg"
+            safe_name = f"blog_{uuid4().hex}{ext}"
+            fs_path = os.path.join(BLOG_IMAGES_DIR, safe_name)
+            content_bytes = await image.read()
+            with open(fs_path, 'wb') as f:
+                f.write(content_bytes)
+            image_path = f"blog_images/{safe_name}"
+
+        post = BlogPost(
+            author_id=user["user_id"],
+            title=title,
+            image_path=image_path,
+            category=category,
+            summary=summary,
+            content=content,
+            is_draft=is_draft,
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
+        )
+        db.add(post)
+        db.commit()
+        db.refresh(post)
+
+        return {
+            "id": post.id,
+            "message": "Blog post created successfully"
+        }
+    except HTTPException as he:
+        raise he
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Database error")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/api/blogs", response_model=List[BlogOut])
+async def list_blogs(
+    category: Optional[str] = Query(None),
+    include_drafts: bool = Query(False),
+    token: str = Depends(oauth2_scheme),
+    db = Depends(get_db)
+):
+    try:
+        user = utils.verify_jwt_token(token)
+        q = db.query(BlogPost)
+        if category:
+            if category not in ALLOWED_BLOG_CATEGORIES:
+                raise HTTPException(status_code=400, detail="Invalid category")
+            q = q.filter(BlogPost.category == category)
+        # Honor include_drafts for all roles so patient portal can opt-in to show all
+        if not include_drafts:
+            q = q.filter(BlogPost.is_draft == False)
+        posts = q.order_by(BlogPost.created_at.desc()).all()
+        results = []
+        for p in posts:
+            results.append({
+                "id": p.id,
+                "author_id": p.author_id,
+                "title": p.title,
+                "image_url": (f"/" + p.image_path) if p.image_path else None,
+                "category": p.category,
+                "summary": p.summary,
+                "is_draft": p.is_draft,
+                "created_at": p.created_at
+            })
+        return results
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/api/blogs/mine", response_model=List[BlogOut])
+async def list_my_blogs(
+    token: str = Depends(oauth2_scheme),
+    db = Depends(get_db)
+):
+    try:
+        user = utils.verify_jwt_token(token)
+        if user["role"] != "doctor":
+            raise HTTPException(status_code=403, detail="Only doctors can view their posts")
+        posts = db.query(BlogPost).filter(BlogPost.author_id == user["user_id"]).order_by(BlogPost.created_at.desc()).all()
+        return [
+            {
+                "id": p.id,
+                "author_id": p.author_id,
+                "title": p.title,
+                "image_url": (f"/" + p.image_path) if p.image_path else None,
+                "category": p.category,
+                "summary": p.summary,
+                "is_draft": p.is_draft,
+                "created_at": p.created_at
+            }
+            for p in posts
+        ]
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 # -----------------------------
 # Authentication Endpoints

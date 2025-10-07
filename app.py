@@ -277,7 +277,7 @@ def patient_dashboard():
     with st.sidebar.expander("Navigation Menu", expanded=True):
         page = st.radio(
         "Choose a page",
-        ["My Profile", "Upload Records", "View Records", "Appointments"]
+        ["My Profile", "Upload Records", "View Records", "Appointments", "Blogs"]
     )
     
         # Display notifications
@@ -300,6 +300,8 @@ def patient_dashboard():
         view_records_page()
     elif page == "Appointments":
         appointments_page()
+    elif page == "Blogs":
+        blogs_browse_page()
 
 
 def upload_records_page():
@@ -569,7 +571,7 @@ def doctor_dashboard():
     with st.sidebar.expander("Navigation", expanded=True):
         page = st.selectbox(
             "Choose a page",
-            ["My Profile", "Patient Search", "View Records", "Appointment Requests"]
+            ["My Profile", "Patient Search", "View Records", "Appointment Requests", "Write Blog", "My Blog Posts"]
         )
     
     # Add logout button in sidebar
@@ -587,6 +589,97 @@ def doctor_dashboard():
         view_records_page()
     elif page == "Appointment Requests":
         appointment_requests_page()
+    elif page == "Write Blog":
+        write_blog_page()
+    elif page == "My Blog Posts":
+        my_blog_posts_page()
+
+def truncate_words(text: str, limit: int = 15) -> str:
+    words = text.split()
+    if len(words) <= limit:
+        return text
+    return " ".join(words[:limit]) + "..."
+
+def write_blog_page():
+    st.header("Write a Blog Post")
+    categories = ["Mental Health", "Heart Disease", "Covid19", "Immunization"]
+    with st.form("blog_form"):
+        title = st.text_input("Title")
+        image = st.file_uploader("Image", type=["jpg", "jpeg", "png"])
+        category = st.selectbox("Category", categories)
+        summary = st.text_area("Summary")
+        content = st.text_area("Content", height=200)
+        is_draft = st.checkbox("Save as draft", value=False)
+        submit = st.form_submit_button("Publish")
+        if submit:
+            if not title or not summary or not content:
+                st.error("Please fill Title, Summary, and Content")
+            else:
+                files = None
+                if image is not None:
+                    files = {"image": (image.name, image.getvalue(), image.type)}
+                data = {
+                    "title": title,
+                    "category": category,
+                    "summary": summary,
+                    "content": content,
+                    "is_draft": str(is_draft).lower()
+                }
+                resp = make_authenticated_request("POST", "/api/blogs", data=data, files=files)
+                if resp:
+                    st.success("Blog post created")
+                    time.sleep(1)
+                    st.rerun()
+
+def my_blog_posts_page():
+    st.header("My Blog Posts")
+    posts = make_authenticated_request("GET", "/api/blogs/mine") or []
+    if not posts:
+        st.info("No posts yet")
+        return
+    for p in posts:
+        with st.expander(f"{p['title']} — {p['category']} ({'Draft' if p['is_draft'] else 'Published'})"):
+            if p.get('image_url'):
+                st.image(f"{API_URL}{p['image_url']}")
+            st.write(p['summary'])
+            st.write(f"Created: {format_datetime(p['created_at'])}")
+
+def blogs_browse_page():
+    st.header("Health Blogs")
+    categories = ["All", "Mental Health", "Heart Disease", "Covid19", "Immunization"]
+    selected = st.segmented_control("Category", categories, selection_mode="single") if hasattr(st, 'segmented_control') else st.selectbox("Category", categories)
+    query_params = {"include_drafts": "true"}
+    if selected and selected != "All":
+        query_params["category"] = selected
+    # Patients only see non-drafts; backend enforces
+    posts = None
+    try:
+        r = requests.get(
+            f"{API_URL}/api/blogs",
+            params=query_params,
+            headers={"Authorization": f"Bearer {st.session_state.token}"}
+        )
+        if r.status_code == 200:
+            posts = r.json()
+        else:
+            st.error("Failed to load blogs")
+            return
+    except Exception as e:
+        st.error(f"Error: {str(e)}")
+        return
+    if not posts:
+        st.info("No posts found")
+        return
+    # Render cards
+    for p in posts:
+        cols = st.columns([1,3])
+        with cols[0]:
+            if p.get('image_url'):
+                st.image(f"{API_URL}{p['image_url']}")
+        with cols[1]:
+            st.subheader(p['title'])
+            st.caption(p['category'])
+            st.write(truncate_words(p.get('summary',''), 15))
 
 def patient_search_page():
     st.header("Patient Search")

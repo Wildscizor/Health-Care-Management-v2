@@ -13,19 +13,39 @@ Basically, it's a system where:
 
 ## What's New?
 
-- Added persistent signup and login with GET/POST in the backend, storing users in users.json, saving profile pictures to profile_pics/ and serving them via /profile_pics/....
-- Compare passwords for confirmation now. after your Submission if the password fields do not match, you will find your appropriate message for any unsuccessful login!
-- Updated the Streamlit UI to include a Signup form with all required fields, password confirmation, and login by email or username. Also fixed the Menu section using internal CSS.
-- After login, users are routed to role-based dashboards with a new My Profile section that displays the signup details.
-- What you can do now
-- Open the UI at PORT = "http://127.0.0.1:8501"
-- Switch to Signup, create either a patient or doctor account, then login
-- On login, you’ll see My Profile in the sidebar and can proceed to other pages
-- Key endpoints added
-- POST /api/auth/signup: fields first_name, last_name, username, email, password, confirm_password, role, address_line1, city, state, pincode, profile_picture (file)
-- POST /api/auth/login: accepts either email+password or username+password
-- GET /api/auth/user/{user_id}: returns public user details (auth required)
-- Static: /profile_pics/{filename} for profile picture serving
+What's New?
+Added persistent signup and login with GET/POST in the backend, storing users in users.json, saving profile pictures to profile_pics/ and serving them via /profile_pics/....
+Compare passwords for confirmation now. after your Submission if the password fields do not match, you will find your appropriate message for any unsuccessful login!
+Updated the Streamlit UI to include a Signup form with all required fields, password confirmation, and login by email or username. Also fixed the Menu section using internal CSS.
+After login, users are routed to role-based dashboards with a new My Profile section that displays the signup details.
+What you can do now
+Open the UI at PORT = "http://127.0.0.1:8501"
+Switch to Signup, create either a patient or doctor account, then login
+On login, you’ll see My Profile in the sidebar and can proceed to other pages
+Key endpoints added
+POST /api/auth/signup: fields first_name, last_name, username, email, password, confirm_password, role, address_line1, city, state, pincode, profile_picture (file)
+POST /api/auth/login: accepts either email+password or username+password
+GET /api/auth/user/{user_id}: returns public user details (auth required)
+Static: /profile_pics/{filename} for profile picture serving
+
+### Blog System (New)
+- Doctors can create blog posts under categories: Mental Health, Heart Disease, Covid19, Immunization
+- Post fields: Title, Image, Category, Summary, Content, Draft flag
+- Doctors can see their own posts
+- Patients can browse published posts by category; summaries auto-truncate to 15 words with "..."
+- Images are served from `/blog_images/`
+
+New API endpoints:
+- `POST /api/blogs` (doctors only): create post (multipart form with optional image)
+- `GET /api/blogs?category=...` (all): list posts, patients only see non-drafts
+- `GET /api/blogs/mine` (doctors only): list author’s posts
+
+UI additions (Streamlit):
+- Doctor: "Write Blog", "My Blog Posts" in dashboard
+- Patient: "Blogs" page with category filter and truncated summaries
+
+Database:
+- MySQL via SQLAlchemy. Table: `blog_posts`.
 
 ## Quick Start
 
@@ -51,6 +71,29 @@ streamlit run app.py
 ```
 
 Then open http://localhost:8000/docs for the API docs and http://localhost:8501 for the web interface.
+
+## MySQL Setup for Blogs
+
+Create a MySQL database and user, then set environment variables in `.env`:
+
+```env
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_DB=healthcare
+MYSQL_USER=root
+MYSQL_PASSWORD=yourpassword
+# Optionally, full URL:
+# DATABASE_URL=mysql+pymysql://root:yourpassword@localhost:3306/healthcare
+```
+
+Install new dependencies and run once to auto-create tables:
+
+```bash
+pip install -r requirements.txt
+uvicorn api:app --reload
+```
+
+On startup, the API will create the `blog_posts` table if it doesn’t exist.
 
 ## Setting Up Environment Variables
 
@@ -133,7 +176,7 @@ You can explore all the endpoints interactively at `/docs` when the API is runni
 
 The main packages this project uses:
 
-**Backend**: FastAPI, Uvicorn, Python-multipart, PyJWT, Passlib
+**Backend**: FastAPI, Uvicorn, Python-multipart, PyJWT, Passlib, SQLAlchemy, PyMySQL
 **Frontend**: Streamlit, Plotly, Pandas, NumPy
 **Security**: bcrypt, cryptography
 
@@ -154,3 +197,8 @@ If you run into problems:
 - Verify that your virtual environment is activated
 
 That's about it! The system is pretty straightforward once you get it running. Let me know if you need help with anything specific. 
+
+## What's New?
+Changelog:
+- Blog system with MySQL storage, images, categories, draft support
+- Streamlit pages for writing and browsing blog posts 
