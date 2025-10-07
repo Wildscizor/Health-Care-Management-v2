@@ -16,41 +16,41 @@ Basically, it's a system where:
 What's New?
 
 ### v2:
-Now added database using MYSQL Workbench 8.0. 
-Prerequisites
-MySQL Server: Make sure you have the MySQL Server installed and running on your system.
+- Now added database using MYSQL Workbench 8.0. 
+- Prerequisites
+- MySQL Server: Make sure you have the MySQL Server installed and running on your system.
 
-MySQL Workbench: You will need MySQL Workbench to connect to the server and import the database.
+- MySQL Workbench: You will need MySQL Workbench to connect to the server and import the database.
 
 ##### Steps to Set Up the Database
-Open MySQL Workbench: Launch the application and connect to your local MySQL server instance using the localhost connection.
-Create a New Database:
-   In the Schemas section on the left, right-click and select "Create Schema...".
-   Name the new schema healthcare_management_v2 (or your preferred database name).
-   Click the Apply button to create the database.
-   Import the Database Schema and Data:
-   Go to Server > Data Import.
-   Select "Import from Self-Contained File" and browse to the location of the .sql file in your project. This file contains the schema and data for the project.
-   Choose the newly created database healthcare_management_v2 as the "Target Schema".
-   Click Start Import.
-   Verify the Import:
-   Once the import is complete, refresh the Schemas view in the left sidebar.
-   Expand the healthcare_management_v2 schema to confirm that all tables and data have been imported correctly.
+- Open MySQL Workbench: Launch the application and connect to your local MySQL server instance using the localhost connection.
+- Create a New Database:
+  - In the Schemas section on the left, right-click and select "Create Schema...".
+  - Name the new schema healthcare_management_v2 (or your preferred database name).
+  - Click the Apply button to create the database.
+  - Import the Database Schema and Data:
+  - Go to Server > Data Import.
+  - Select "Import from Self-Contained File" and browse to the location of the .sql file in your project. This file contains the schema and data for the project.
+  - Choose the newly created database healthcare_management_v2 as the "Target Schema".
+  - Click Start Import.
+  - Verify the Import:
+  - Once the import is complete, refresh the Schemas view in the left sidebar.
+  - Expand the healthcare_management_v2 schema to confirm that all tables and data have been imported correctly.
 
 ### v1: 
-Added persistent signup and login with GET/POST in the backend, storing users in users.json, saving profile pictures to profile_pics/ and serving them via /profile_pics/....
-Compare passwords for confirmation now. after your Submission if the password fields do not match, you will find your appropriate message for any unsuccessful login!
-Updated the Streamlit UI to include a Signup form with all required fields, password confirmation, and login by email or username. Also fixed the Menu section using internal CSS.
-After login, users are routed to role-based dashboards with a new My Profile section that displays the signup details.
-What you can do now
-Open the UI at PORT = "http://127.0.0.1:8501"
-Switch to Signup, create either a patient or doctor account, then login
-On login, you’ll see My Profile in the sidebar and can proceed to other pages
-Key endpoints added
-POST /api/auth/signup: fields first_name, last_name, username, email, password, confirm_password, role, address_line1, city, state, pincode, profile_picture (file)
-POST /api/auth/login: accepts either email+password or username+password
-GET /api/auth/user/{user_id}: returns public user details (auth required)
-Static: /profile_pics/{filename} for profile picture serving
+- Added persistent signup and login with GET/POST in the backend, storing users in users.json, saving profile pictures to profile_pics/ and serving them via /profile_pics/....
+- Compare passwords for confirmation now. after your Submission if the password fields do not match, you will find your appropriate message for any unsuccessful login!
+- Updated the Streamlit UI to include a Signup form with all required fields, password confirmation, and login by email or username. Also fixed the Menu section using internal CSS.
+- After login, users are routed to role-based dashboards with a new My Profile section that displays the signup details.
+##### What you can do now
+- Open the UI at PORT = "http://127.0.0.1:8501"
+- Switch to Signup, create either a patient or doctor account, then login
+- On login, you’ll see My Profile in the sidebar and can proceed to other pages
+###### Key endpoints added
+- POST /api/auth/signup: fields first_name, last_name, username, email, password, confirm_password, role, address_line1, city, state, pincode, profile_picture (file)
+- POST /api/auth/login: accepts either email+password or username+password
+- GET /api/auth/user/{user_id}: returns public user details (auth required)
+- Static: /profile_pics/{filename} for profile picture serving
 
 ### Blog System (New)
 - Doctors can create blog posts under categories: Mental Health, Heart Disease, Covid19, Immunization
